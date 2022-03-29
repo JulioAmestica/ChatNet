@@ -1,0 +1,54 @@
+﻿
+<h1>@ViewData["theRoom"].ToString()</h1>
+
+<div class="row">
+    <div class="col-12">
+        <label id="user">@User.Identity.Name</label>
+        <input type="text" id="message" value=""/>
+        <button id="btnSend">Send Message</button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-6">
+        <div id="messages"></div>
+    </div>
+    <div class="col-6">
+        <div id="notifications"></div>
+    </div>
+</div>
+
+<script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+
+<script>
+    var conn = new signalR.HubConnectionBuilder()
+        .withUrl("/chat")
+        .withAutomaticReconnect()
+        .build();
+    
+    conn.start().then(() => {
+        conn.invoke("AddToGroup", "@Model")
+    }).catch((e) => console.error(e));
+
+    document.getElementById("btnSend").addEventListener("click", (event) => {
+        let room = "@Model";
+        let user = document.getElementById("user").innerHTML;
+        let message = document.getElementById("message").value;
+        conn.invoke("SendMessage", room, user, message).catch((e) => console.error(e));
+
+        document.getElementById("message").value = "";
+        document.getElementById("message").focus();
+
+        event.preventDefault();
+    })
+
+    conn.on("ReceiveMessage", (user, message) => {
+        var message = "<div><b>" + user + " say: </b>" + message + "</div>";
+        document.getElementById("messages").innerHTML = document.getElementById("messages").innerHTML + message;
+    })
+
+    conn.on("ShowNew", (message) => {
+        var message = "<div><b>" + message + "</b></div>";
+        document.getElementById("notifications").innerHTML = document.getElementById("notifications").innerHTML + message;
+    })
+</script>
